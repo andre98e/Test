@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruleta de Almuerzos - ¿Qué comemos hoy?</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+    <div class="background-animation"></div>
+    
+    <div class="main-container">
+        <header>
+            <h1>Ruleta de Almuerzos</h1>
+            <p>¡Gira la suerte y decide tu comida!</p>
+        </header>
+
+        <div class="content-grid">
+            <!-- Left Column: Wheel & Controls -->
+            <section class="wheel-section glass-panel">
+                <div class="wheel-container">
+                    <canvas id="wheelCanvas" width="500" height="500"></canvas>
+                    <div class="pointer"></div>
+                </div>
+                
+                <div class="controls">
+                    <div class="date-picker-group">
+                        <label for="recordDate">Fecha del registro:</label>
+                        <input type="date" id="recordDate" min="2020-01-01" max="2030-01-01">
+                    </div>
+                    <button id="spinBtn" class="primary-btn">¡GIRAR!</button>
+                </div>
+            </section>
+
+            <!-- Right Column: Settings & History -->
+            <aside class="sidebar-section">
+                <!-- Add Food -->
+                <div class="glass-panel input-panel">
+                    <h3>🍽️ Opciones de Comida</h3>
+                    <div class="input-group">
+                        <input type="text" id="newFoodInput" placeholder="Nueva comida...">
+                        <button id="addFoodBtn" class="icon-btn">+</button>
+                    </div>
+                    <ul id="foodList" class="scrollable-list">
+                        <!-- Items injected by JS -->
+                    </ul>
+                </div>
+
+                <!-- History -->
+                <div class="glass-panel history-panel">
+                    <h3>📜 Historial (Últimos 20)</h3>
+                    <div class="table-wrapper">
+                        <table id="historyTable">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Comida</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <h2>¡El ganador es!</h2>
+            <div id="winnerDisplay" class="winner-text">Pizza</div>
+            <div class="modal-actions">
+                <button id="acceptBtn" class="action-btn success">Aceptar ✅</button>
+                <button id="retryBtn" class="action-btn warning">Girar de nuevo 🔄</button>
+                <button id="cancelBtn" class="action-btn danger">Cancelar ❌</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

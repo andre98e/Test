@@ -15,10 +15,18 @@
     <div class="background-animation"></div>
 
     <div class="main-container">
+        <!-- Mode Selector -->
+        <div id="modeSelector" style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+            <button id="onlineModeBtn" class="action-btn"
+                style="background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #fff;">🌐 Online</button>
+            <button id="offlineModeBtn" class="action-btn"
+                style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fff;">🧪 Offline</button>
+        </div>
+
         <header>
             <h1>Ruleta de Almuerzos</h1>
             <p>¡Gira la suerte y decide tu comida! <span id="connectionStatus"
-                    style="font-size: 0.8rem; color: var(--text-dim);">🔌 Conectando...</span></p>
+                    style="font-size: 0.9rem; font-weight: bold;"></span></p>
         </header>
 
         <div class="content-grid">

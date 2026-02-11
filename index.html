@@ -53,7 +53,12 @@
 
                 <!-- History -->
                 <div class="glass-panel history-panel">
-                    <h3>📜 Historial (Últimos 20)</h3>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
+                        <h3 style="border: none; margin: 0; padding: 0;">📜 Historial</h3>
+                        <button id="clearHistoryBtn" class="delete-btn" style="font-size: 0.9rem; opacity: 0.8;"
+                            title="Borrar todo el historial">❌ Limpiar</button>
+                    </div>
                     <div class="table-wrapper">
                         <table id="historyTable">
                             <thead>

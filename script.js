@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -23,6 +23,7 @@ const addFoodBtn = document.getElementById('addFoodBtn');
 const foodListEl = document.getElementById('foodList');
 const historyTableBody = document.querySelector('#historyTable tbody');
 const recordDateInput = document.getElementById('recordDate');
+const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
 // Modal Elements
 const resultModal = document.getElementById('resultModal');
@@ -249,6 +250,25 @@ retryBtn.addEventListener('click', () => {
 
 cancelBtn.addEventListener('click', () => {
     resultModal.classList.add('hidden');
+});
+
+clearHistoryBtn.addEventListener('click', async () => {
+    if (confirm("¿Estás seguro de borrar TODO el historial? Esta acción no se puede deshacer.")) {
+        try {
+            const q = query(collection(db, "history"));
+            const snapshot = await getDocs(q);
+            const batch = writeBatch(db);
+
+            snapshot.docs.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+
+            await batch.commit();
+        } catch (e) {
+            console.error("Error clearing history: ", e);
+            alert("Error al vaciar el historial.");
+        }
+    }
 });
 
 // --- UI Rendering ---

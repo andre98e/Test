@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit, writeBatch, getDocs, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -14,6 +14,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Enable Offline Persistence
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code == 'failed-precondition') {
+        console.warn("Persistence failed: Multiple tabs open.");
+    } else if (err.code == 'unimplemented') {
+        console.warn("Persistence not supported by browser.");
+    }
+});
+
 // --- DOM Elements ---
 const canvas = document.getElementById('wheelCanvas');
 const ctx = canvas.getContext('2d');
@@ -24,6 +33,7 @@ const foodListEl = document.getElementById('foodList');
 const historyTableBody = document.querySelector('#historyTable tbody');
 const recordDateInput = document.getElementById('recordDate');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+const connectionStatus = document.getElementById('connectionStatus');
 
 // Modal Elements
 const resultModal = document.getElementById('resultModal');
@@ -58,6 +68,9 @@ function setupRealtimeListeners() {
     // 1. Foods Listener
     const qFoods = query(collection(db, "foods"));
     onSnapshot(qFoods, (snapshot) => {
+        connectionStatus.textContent = "🟢 Conectado";
+        connectionStatus.style.color = "#22c55e";
+
         foods = snapshot.docs.map(doc => ({
             id: doc.id,
             name: doc.data().name

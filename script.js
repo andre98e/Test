@@ -67,8 +67,35 @@ function setTodayDate() {
 function setupRealtimeListeners() {
     // 1. Foods Listener
     const qFoods = query(collection(db, "foods"));
+
+    // Connection Timeout Logic
+    const connectionTimeout = setTimeout(() => {
+        if (connectionStatus.textContent !== "🟢 Conectado" && connectionStatus.textContent !== "🟢 Conectado (Cache)") {
+            connectionStatus.textContent = "⚠️ MODO OFFLINE";
+            connectionStatus.style.color = "#eab308";
+
+            // If we have no foods loaded (first run offline), load defaults so user can play
+            if (foods.length === 0) {
+                console.log("Offline timeout: Loading defaults.");
+                foods = [
+                    { id: 'default1', name: 'Pizza' },
+                    { id: 'default2', name: 'Hamburguesa' },
+                    { id: 'default3', name: 'Ensalada' },
+                    { id: 'default4', name: 'Sushi' },
+                    { id: 'default5', name: 'Tacos' }
+                ];
+                renderFoodList();
+                renderWheel();
+            }
+        }
+    }, 30000); // 30 seconds
+
     onSnapshot(qFoods, (snapshot) => {
-        connectionStatus.textContent = "🟢 Conectado";
+        // Clear timeout if we get data
+        clearTimeout(connectionTimeout);
+
+        const source = snapshot.metadata.fromCache ? "Cache" : "Server";
+        connectionStatus.textContent = `🟢 Conectado (${source})`;
         connectionStatus.style.color = "#22c55e";
 
         foods = snapshot.docs.map(doc => ({
@@ -76,7 +103,6 @@ function setupRealtimeListeners() {
             name: doc.data().name
         }));
 
-        // If empty, user can add foods. We won't auto-seed to avoid loop if they delete all.
         renderFoodList();
         renderWheel();
     });

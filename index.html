@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,10 +8,12 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Firebase script moved to script.js module logic -->
 </head>
+
 <body>
     <div class="background-animation"></div>
-    
+
     <div class="main-container">
         <header>
             <h1>Ruleta de Almuerzos</h1>
@@ -24,7 +27,7 @@
                     <canvas id="wheelCanvas" width="500" height="500"></canvas>
                     <div class="pointer"></div>
                 </div>
-                
+
                 <div class="controls">
                     <div class="date-picker-group">
                         <label for="recordDate">Fecha del registro:</label>
@@ -73,7 +76,7 @@
     <div id="resultModal" class="modal hidden">
         <div class="modal-content glass-panel">
             <h2>¡El ganador es!</h2>
-            <div id="winnerDisplay" class="winner-text">Pizza</div>
+            <div id="winnerDisplay" class="winner-text">...</div>
             <div class="modal-actions">
                 <button id="acceptBtn" class="action-btn success">Aceptar ✅</button>
                 <button id="retryBtn" class="action-btn warning">Girar de nuevo 🔄</button>
@@ -82,6 +85,7 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
+
 </html>

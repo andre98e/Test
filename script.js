@@ -1,4 +1,20 @@
-// DOM Elements
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+// --- Firebase Configuration ---
+const firebaseConfig = {
+    apiKey: "AIzaSyA9knGhSnePFk8nQf7MUA7psKcT6XYR8K8",
+    authDomain: "ruleta-20dfe.firebaseapp.com",
+    projectId: "ruleta-20dfe",
+    storageBucket: "ruleta-20dfe.firebasestorage.app",
+    messagingSenderId: "870456448153",
+    appId: "1:870456448153:web:522fe1d9b1c586627d1408"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// --- DOM Elements ---
 const canvas = document.getElementById('wheelCanvas');
 const ctx = canvas.getContext('2d');
 const spinBtn = document.getElementById('spinBtn');
@@ -15,9 +31,9 @@ const acceptBtn = document.getElementById('acceptBtn');
 const retryBtn = document.getElementById('retryBtn');
 const cancelBtn = document.getElementById('cancelBtn');
 
-// State
-let foods = JSON.parse(localStorage.getItem('lunchFoods')) || ["Pizza", "Ensalada", "Sushi", "Hamburguesa", "Tacos", "Pasta"];
-let history = JSON.parse(localStorage.getItem('lunchHistory')) || [];
+// --- State ---
+let foods = []; // Array of { id, name }
+let history = []; // Array of { id, date, food }
 let isSpinning = false;
 let currentRotation = 0;
 let animationId = null;
@@ -25,15 +41,10 @@ let animationId = null;
 // Constants
 const COLORS = ['#6366f1', '#ec4899', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#3b82f6', '#10b981'];
 
-// Initialization
+// --- Initialization ---
 function init() {
-    renderWheel();
-    renderFoodList();
-    renderHistory();
     setTodayDate();
-
-    // Resize handling for responsive canvas
-    // (In a production app, we'd handle resizing more robustly)
+    setupRealtimeListeners();
 }
 
 function setTodayDate() {
@@ -41,19 +52,61 @@ function setTodayDate() {
     recordDateInput.value = today;
 }
 
-// Wheel Rendering
+// --- Firebase Listeners ---
+function setupRealtimeListeners() {
+    // 1. Foods Listener
+    const qFoods = query(collection(db, "foods"));
+    onSnapshot(qFoods, (snapshot) => {
+        foods = snapshot.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name
+        }));
+
+        // If empty, user can add foods. We won't auto-seed to avoid loop if they delete all.
+        renderFoodList();
+        renderWheel();
+    });
+
+    // 2. History Listener (Last 20 ordered by date desc)
+    // Note: 'date' string sort works for ISO format YYYY-MM-DD
+    const qHistory = query(
+        collection(db, "history"),
+        orderBy("date", "desc"),
+        limit(20)
+    );
+
+    onSnapshot(qHistory, (snapshot) => {
+        history = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        renderHistory();
+    });
+}
+
+// --- Wheel Rendering ---
 function renderWheel() {
     const width = canvas.width;
     const height = canvas.height;
     const radius = width / 2;
-    const sliceAngle = (2 * Math.PI) / foods.length;
 
     ctx.clearRect(0, 0, width, height);
+
+    if (foods.length === 0) {
+        ctx.font = "20px Outfit";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.fillText("Agrega comidas para empezar", width / 2, height / 2);
+        return;
+    }
+
+    const sliceAngle = (2 * Math.PI) / foods.length;
+
     ctx.save();
     ctx.translate(width / 2, height / 2);
     ctx.rotate(currentRotation);
 
-    foods.forEach((food, index) => {
+    foods.forEach((item, index) => {
         // Draw Slice
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -68,14 +121,14 @@ function renderWheel() {
         ctx.textAlign = "right";
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 20px Outfit";
-        ctx.fillText(food, radius - 20, 5);
+        ctx.fillText(item.name, radius - 20, 5);
         ctx.restore();
     });
 
     ctx.restore();
 }
 
-// Spin Logic
+// --- Spin Logic ---
 function spinWheel() {
     if (isSpinning) return;
     if (foods.length < 2) {
@@ -86,32 +139,22 @@ function spinWheel() {
     isSpinning = true;
     spinBtn.disabled = true;
 
-    // Calculate random spin duration and rotations
-    const duration = 5000; // 5 seconds
+    const duration = 5000;
     const minRotations = 5;
     const maxRotations = 10;
     const randomRotations = minRotations + Math.random() * (maxRotations - minRotations);
     const totalRotationAngle = randomRotations * 2 * Math.PI;
 
-    // Randomize winning index slightly to not always land in center of slice
     const sliceAngle = (2 * Math.PI) / foods.length;
-    const randomOffset = Math.random() * sliceAngle * 0.8; // within 80% of slice
-
-    // We want to land on a specific slice.
-    // The pointer is at 270 degrees (Top) or -90 degrees.
-    // But our drawing starts at 0 (Right).
-    // So to check winner visually, we need to account for this.
-    // However, simplest way is: just rotate effectively and calculate winner at end based on final rotation.
+    const randomOffset = Math.random() * sliceAngle * 0.8;
 
     const startTime = performance.now();
-    const startRotation = currentRotation % (2 * Math.PI); // Normalize starting pos
+    const startRotation = currentRotation % (2 * Math.PI);
     const targetRotation = startRotation + totalRotationAngle + randomOffset;
 
     function animate(currentTime) {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
-
-        // Easing function: cubic-bezier-like ease out
         const easeOut = 1 - Math.pow(1 - progress, 3);
 
         currentRotation = startRotation + (targetRotation - startRotation) * easeOut;
@@ -131,37 +174,22 @@ function spinWheel() {
 
 function determineWinner(rotation) {
     const sliceAngle = (2 * Math.PI) / foods.length;
-    // Normalize rotation to 0 - 2PI
     let normalizedRotation = rotation % (2 * Math.PI);
-
-    // Pointer is at Top (effectively -PI/2 or 3PI/2 relative to 0 start at Right)
-    // The wheel rotates CLOCKWISE.
-    // Example: If 0 rotation, index 0 is at (0 to sliceAngle). 
-    // To bring index 0 to top, we rotate -90deg (-PI/2) or 270deg.
-
-    // Let's do a reverse calculation.
-    // The angle of the pointer relative to the wheel's 0 is:
-    // pointerAngle = (3 * Math.PI / 2) - normalizedRotation;
-    // Just easier to Map:
-
-    // If we rotate the context by R, the item at angle A is now at A + R.
-    // We want A + R = 3PI/2 (270 deg - top).
-    // A = 3PI/2 - R.
 
     let pointerAngle = (1.5 * Math.PI - normalizedRotation) % (2 * Math.PI);
     if (pointerAngle < 0) pointerAngle += 2 * Math.PI;
 
     const winningIndex = Math.floor(pointerAngle / sliceAngle);
-    const winner = foods[winningIndex];
-
-    showResult(winner);
+    // Safety check
+    if (foods[winningIndex]) {
+        showResult(foods[winningIndex].name);
+    }
 }
 
-function showResult(winner) {
-    winnerDisplay.textContent = winner;
+function showResult(winnerName) {
+    winnerDisplay.textContent = winnerName;
     resultModal.classList.remove('hidden');
 
-    // Celebrate!
     confetti({
         particleCount: 150,
         spread: 70,
@@ -169,17 +197,27 @@ function showResult(winner) {
     });
 }
 
-// Event Listeners
+// --- Event Listeners ---
 spinBtn.addEventListener('click', spinWheel);
 
-addFoodBtn.addEventListener('click', () => {
-    const food = newFoodInput.value.trim();
-    if (food && !foods.includes(food)) {
-        foods.push(food);
-        newFoodInput.value = '';
-        saveFoods();
-        renderFoodList();
-        renderWheel();
+addFoodBtn.addEventListener('click', async () => {
+    const foodName = newFoodInput.value.trim();
+    if (foodName) {
+        // Prevent strictly empty strings, duplicates allowed? 
+        // User didn't specify strict duplicate check for Firestore, but let's keep it simple.
+        // Checking local array for name existence is good UX.
+        const exists = foods.some(f => f.name.toLowerCase() === foodName.toLowerCase());
+        if (!exists) {
+            try {
+                await addDoc(collection(db, "foods"), { name: foodName });
+                newFoodInput.value = '';
+            } catch (e) {
+                console.error("Error adding food: ", e);
+                alert("Error al guardar comida.");
+            }
+        } else {
+            alert("Esa comida ya está en la lista.");
+        }
     }
 });
 
@@ -188,9 +226,20 @@ newFoodInput.addEventListener('keypress', (e) => {
 });
 
 // Modal Actions
-acceptBtn.addEventListener('click', () => {
-    addToHistory(winnerDisplay.textContent);
-    resultModal.classList.add('hidden');
+acceptBtn.addEventListener('click', async () => {
+    const winnerName = winnerDisplay.textContent;
+    const date = recordDateInput.value;
+
+    try {
+        await addDoc(collection(db, "history"), {
+            date: date,
+            food: winnerName
+        });
+        resultModal.classList.add('hidden');
+    } catch (e) {
+        console.error("Error saving history: ", e);
+        alert("Error al guardar historial.");
+    }
 });
 
 retryBtn.addEventListener('click', () => {
@@ -202,16 +251,7 @@ cancelBtn.addEventListener('click', () => {
     resultModal.classList.add('hidden');
 });
 
-// History Logic
-function addToHistory(food) {
-    const date = recordDateInput.value;
-    history.unshift({ date, food }); // Add to beginning
-    if (history.length > 20) history.pop(); // Keep only 20
-
-    saveHistory();
-    renderHistory();
-}
-
+// --- UI Rendering ---
 function renderHistory() {
     historyTableBody.innerHTML = '';
     history.forEach(item => {
@@ -225,41 +265,40 @@ function renderHistory() {
 }
 
 function formatDate(dateString) {
-    const [year, month, day] = dateString.split('-');
+    if (!dateString) return "";
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return dateString;
+    const [year, month, day] = parts;
     return `${day}/${month}/${year}`;
-}
-
-// Data Persistence
-function saveFoods() {
-    localStorage.setItem('lunchFoods', JSON.stringify(foods));
-}
-
-function saveHistory() {
-    localStorage.setItem('lunchHistory', JSON.stringify(history));
 }
 
 function renderFoodList() {
     foodListEl.innerHTML = '';
-    foods.forEach((food, index) => {
+    foods.forEach((item) => {
         const li = document.createElement('li');
         li.innerHTML = `
-            <span>${food}</span>
-            <button class="delete-btn" onclick="removeFood(${index})">&times;</button>
+            <span>${item.name}</span>
+            <button class="delete-btn" onclick="removeFood('${item.id}')">&times;</button>
         `;
         foodListEl.appendChild(li);
     });
 }
 
-// Expose removeFood globally so onclick works
-window.removeFood = function (index) {
+// --- Global helper for Delete Button ---
+window.removeFood = async function (docId) {
     if (foods.length <= 2) {
         alert("Debe haber al menos 2 opciones.");
         return;
     }
-    foods.splice(index, 1);
-    saveFoods();
-    renderFoodList();
-    renderWheel();
+
+    if (confirm("¿Borrar comida?")) {
+        try {
+            await deleteDoc(doc(db, "foods", docId));
+        } catch (e) {
+            console.error("Error removing food: ", e);
+            alert("Error al borrar.");
+        }
+    }
 };
 
 // Start
